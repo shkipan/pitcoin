@@ -4,6 +4,14 @@ from wallet import checksum, verify
 
 def check_aval(trans):
     try:
+        if (trans.sender == ''):
+            trans.sender  = str('0' * 34)
+        if (len(trans.sender) > 35 or len(trans.sender) < 26):
+            print ('Invalid length of sender\'s address')
+            return (False)
+        if (len(trans.recipient) > 35 or len(trans.recipient) < 26):
+            print ('Invalid length of recepient\'s address')
+            return (False)
         ssend = '0' * 34 if (trans.sender == '0' * 34) else binascii.hexlify(base58.b58decode(trans.sender)).decode()
         srec = binascii.hexlify(base58.b58decode(trans.recipient)).decode()
         if ssend != '0' * 34:
@@ -32,7 +40,7 @@ def check_address(trans):
     sha = hashlib.sha256(binascii.unhexlify(s)).hexdigest().upper()
     h = hashlib.new('ripemd160')
     h.update(binascii.unhexlify(sha))
-    s = '00' +  h.hexdigest()
+    s = '6f' +  h.hexdigest()
     sha1 = hashlib.sha256(binascii.unhexlify(s)).hexdigest().upper()
     sha2 = hashlib.sha256(binascii.unhexlify(sha1)).hexdigest().upper()
     s += sha2[0:8]
@@ -52,4 +60,17 @@ def check_valid(trans):
 
 def verification(trans):
     return check_aval(trans) and check_address(trans) and check_valid(trans)
+
+
+def validate_raw(trans):
+    print (validate_inputs(trans))
+    print (validate_outputs(trans))
+    return True
+
+def validate_inputs(trans):
+    return True
+
+def validate_outputs(trans):
+    return True
+
 

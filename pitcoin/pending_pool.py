@@ -4,50 +4,49 @@ from tx_validator import verification
 
 import urllib.request, json, requests
 
+from syncdata import get_config
+from pathlib import Path
+
+home = str(Path.home()) + '/.pitcoin/'
+my_url, PORT = get_config()
 
 def add_trans(plain):
     x = Deserializer.deserialize(plain)
-    if not verification(x):
-        print ('Error, serialization of transaction failed')
-    else:
-        save_to_mem(x, plain)
+    save_to_mem(plain) if verification(x) else print ('Error, serialization of transaction failed')
 
- #   if not verification(x):
- #       save_to_mem(x, plain)
-
-def save_to_mem(trans, plain):
-    f = open('mempool', 'a+')
-    send_url = 'http://127.0.0.1:5000/transactions/new'
-    data = {
-        'sender': trans.sender,
-        'recipient': trans.recipient,
-        'amount': trans.amount,
-    }
-    r = requests.post(url = send_url, json=data)
-
-    f.write(plain+'\n')
-    f.close()
-
-def get_trans():
+def save_to_mem(plain):
+    send_url = my_url + ':' + str(PORT) + '/transactions/new'
+    data = {'serial': plain}
     try:
-        f = open('mempool', 'r+')
-    except IOError:
-        print ('No mempool file')
-        return None 
-    s = f.read().split('\n')[-4:-1]
-    f.close()
-    if (len(s) == 0):
-        print ('mempool is empty')
-    for trans in s:
-        Deserializer.deserialize(trans).display()
-    
-    with urllib.request.urlopen('http://127.0.0.1:5000/transactions') as url:
-        data = json.loads(url.read().decode())
-        for i in data['ppool']:
-            print (i['sender'], i['recipient'])
-            print (i['amount'])
-    return (s)
+        r = requests.post(url = send_url, json=data)
+    except requests.exceptions.ConnectionError:
+        print ('Unable to connect')
+        return False 
+    d = json.loads(r.text)
+    try:
+        if (d['success']):
+            print ('transaction accepted')
+    except KeyError:
+        print (d['error'] + ', transaction denied')
+        return False 
+    return True
+   
+def get_trans(data):
+    s1 = []
+    if (len(data['ppool']) == 0):
+        print ('empty mempool')
+        return ''
+    for i in data['ppool'][:3]:
+        s1.append(i['serial'])
+        Deserializer.deserialize(i['serial']).display()
+    return (s1)
 
+def get_last_trans(data):
+    s1 = []
+    for i in data['ppool'][-3:]:
+        s1.append(i['serial'])
+        Deserializer.deserialize(i['serial']).display()
+    return (s1)
 
 if __name__ == '__main__':
     get_trans()
