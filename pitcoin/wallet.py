@@ -158,7 +158,29 @@ def get_inputs(pa, send_url):
         return
     return sorted(d['utxo_set']['tx'], key=itemgetter('amount'))
 
+def get_testnet_inputs(sender):
+    send_url = 'https://testnet.blockchain.info/unspent?active=' + sender
+    try:
+        r = requests.get(url=send_url)
+    except requests.exceptions.ConnectionError:
+        print ('Unable to connect')
+        return
+    try:
+        d = json.loads(r.text)
+    except json.decoder.JSONDecodeError:
+        return
+    res = []
+    for item in d['unspent_outputs']:
+        tx ={
+                'amount': item['value'],
+                'tx_prev_index': item['tx_output_n'],
+                'tx_prev_hash': item['tx_hash_big_endian'],
+                'script': item['script']
+                } 
+        res.append(tx)
+    return sorted(res, key=itemgetter('amount'))
+
 if __name__ == '__main__':
-    print (-42)
+    get_testnet_inputs('mv13YQAqcat77LVNVU2b8qh3GHiqCik6fi')
 
 

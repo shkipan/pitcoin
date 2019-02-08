@@ -190,7 +190,7 @@ def add_raw_transaction():
         print ('Invalid trasnsaction format')
         return jsonify({'error':'Invalid transaction format'}), 404
     x.display_raw()
-    validate_raw(x)
+    validate_raw(data['utxo'], x)
 
 
     return jsonify({'success': True}), 201

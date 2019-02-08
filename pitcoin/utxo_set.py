@@ -73,6 +73,11 @@ def utxo_add(utxo, trans):
                     'amount': trans.outputs[i]['value']},
         ]})
 
+def utxo_get_script(utxo, trans_hash, index):
+    for item in utxo:
+        if trans_hash == item['tx_id']:
+            return item['outputs'][index]['script']
+
 
 #TO DEL_______________________________________________________
 
@@ -87,12 +92,12 @@ def utxo_init(data):
                         'amount': 50},
                     {
                         'address': 'n2Zp9LVCnQF5Wvpw8G9ogKb4DGDR9PmXvR',
-                        'index': 0,
+                        'index': 1,
                         'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac',
                         'amount': 50},
                    {
                         'address': 'mtKx9fXxQuuAdr21jmFg9ZbRrSk8GLYsaG',
-                        'index': 0,
+                        'index': 2,
                         'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac',
                         'amount': 50},
                 ]})
@@ -106,12 +111,12 @@ def utxo_init(data):
                         'amount': 11},
                     {
                         'address': 'mv13YQAqcat77LVNVU2b8qh3GHiqCik6fi',
-                        'index': 0,
+                        'index': 1,
                         'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac',
                         'amount': 42},
                    {
                         'address': 'n2Zp9LVCnQF5Wvpw8G9ogKb4DGDR9PmXvR',
-                        'index': 0,
+                        'index': 2,
                         'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac',
                         'amount': 25},
                 ]})

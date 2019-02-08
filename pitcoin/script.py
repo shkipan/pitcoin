@@ -16,49 +16,32 @@ class Script():
         return (item)
 
     def has(stack,item):
-        item = bytes.fromhex('030bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b969')
-        sha = hashlib.sha256(item).digest()
+        sha = hashlib.sha256(bytes.fromhex(item)).digest()
         h = hashlib.new('ripemd160')
-        print (sha)
         h.update(sha)
         s = h.hexdigest()
         stack.push(s)
-        print (wallet.termcolors.RED + 'fin', s + wallet.termcolors.DEF)
         return (s)
 
     def check(stack, pubk):
-        sig = stack.pop()
-        p_hex = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F'
-        p = int(p_hex, 16)
-        x_hex = pubk[2:]
-        x = int(x_hex, 16)
-        y_sq = (pow(x, 3, p)  + 7) % p
-        y = pow(y_sq, int((p+1)/4), p)
-        print ('y=', y)
-        if (y & 1 == 1 and x_hex[0:2] == '03') or (y & 1 == 0 and x_hex[0:2] == '02'):
-            y = y
-        else:
-            y = (-1 * y) % p
+        signature = stack.pop()
 
-
-   
         '''
-        vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(pubk), curve=ecdsa.SECP256k1)
+        vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(public_key), curve=ecdsa.SECP256k1)
         try:
-            vk.verify(bytes.fromhex(sig), bytes.fromhex(stack.trans_hex), sigdecode=ecdsa.util.sigdecode_der)
+            vk.verify(bytes.fromhex(signature), bytes.fromhex(stack.trans_hex), sigdecode=ecdsa.util.sigdecode_der)
             print ('Valid Sig')
             stack.validity = True
         except ecdsa.BadSignatureError:
             print ('Invalid Sig')
             stack.validity = False
         '''
+
         stack.push(True)
         return True
 
     def equ(stack, item):
         item2 = stack.pop()
-        print (item)
-        print (item2)
         stack.push(False if item != item2 else True)
         return Script.verify(stack, stack.pop()) 
 
@@ -84,51 +67,48 @@ class Script():
         return len(self.items)
     def get(self):
         return (self.items)
+    def display(self):
+        print (wallet.termcolors.RED + '_____________________' + wallet.termcolors.DEF)
+        for i in self.items:
+            print ('࿈', i)
+        print (wallet.termcolors.RED + '_____________________' + wallet.termcolors.DEF)
 
-    def decode(self, script, keys):
-        stack = Script(self.trans_hex)
-        for i in keys:
-            stack.push(i)
-        s = binascii.unhexlify(script)
-        code = 0
-        while (code < len(s)):
-            op_done = False
-            for i in Script.operations:
-                if i[0] == s[code]:
-                    op_done = True
-                    i[2](stack, stack.pop())
-            if not op_done:
-                step = s[code]
-                if code + step + 1 >= len(s):
-                    return False
-                res = s[code + 1: code + step + 1]
-                stack.push(binascii.hexlify(res).decode())
-                code += step
-            print (stack.items)
-            code += 1
-        return stack.validity
-    
-    def encode(self, script):
-        result = ''
-        script = script.split(' ')
-        for item in script:
-            op_done = False
-            for op in Script.operations:
-                if op[1] == item:
-                    op_done = True
-                    result += hex(op[0]).replace('0x', '')
-            if not op_done:
-                result += hex(len(item)).replace('0x', '')
-                result += item
-        return result
+    def decode(self, script, scriptpubkey):
+        stack = self
+        Script.verify_script(stack, scriptpubkey)
+        Script.verify_script(stack, script)
+        return (stack.pop())
+
+    def verify_script(stack, script):
+        if not script:
+            return False, 'Invalid tx_prev_hash'
+        script = bytes.fromhex(script)
+        i = 0
+        while i < len(script):
+            code_done = False
+            elem = script[i]
+            for code in Script.operations:
+                if (elem == code[0]):
+                 #   print (code[1])
+                    code[2](stack, stack.pop())
+                 #   stack.display()
+                    code_done = True
+                    break
+            if not code_done:
+                x = script[i + 1 : i + elem + 1]
+                stack.push(x.hex())
+             #  stack.display()
+                i += elem 
+            i += 1
+        return True, 'Script is valid'
         
 
+           
+
 if __name__ == '__main__':
-    sig = '3045022100b30bacdd6e82125d1ab31c8e9e7f951dc881390f0723eddd396ec420cfe26e6f02205ae1fc04542b75f8b933b9e25efbc559c3a1f90a7864cdbc6f7ee22e9f1aecff'
-    pub = '030bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b969'
-    print ('sig', sig)
-    print ('pub', pub)
-    script = Script('9ac980c2f590a0245875b7f97481da0f77251ce3f1120db401635130c1aee87f')
-    print (script.decode('76a914e594a98386b8c08cb2b6714b4cd574147fc012a588ac', [sig, pub]))
+    scriptsig = '483045022100f2fd091947e9f07d8de42efe18ee8471f98edebdf0684da535c69584d29ea27e022076818b93dfb10e43ab2167e31d6c61c8e6abaef5ec383eabdec7a5e3151184d10121030bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b969'
+    script = '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'
+    scr = Script('8b367538abb9e099d9e3e902d566defed0485eeaafdba0d7bdf70fe4c4afa6bc')
+    print (scr.decode(script, scriptsig))
 
  

@@ -37,10 +37,10 @@ class Transaction():
     def display_raw(self):
         print ('__________________________________________')
         print ('transaction hash:', self.tr_hash.hex())
-        print ('version:   ', binascii.hexlify(struct.pack('<L', self.version)).decode()) 
+        print ('version:   ', self.version) 
 
-        print ('input count:', binascii.hexlify(struct.pack('<L', len(self.inputs))).decode())
-        print ('output count:', binascii.hexlify(struct.pack('<L', len(self.outputs))).decode())
+        print ('input count:', self.inputs_num)
+        print ('output count:', self.outputs_num)
         for i in self.inputs:
             print ('input:')
             print (i)

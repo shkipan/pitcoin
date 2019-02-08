@@ -1,6 +1,5 @@
 import sys, binascii, struct, base58, hashlib, ecdsa
 from transaction import Transaction
-from tx_validator import verification
 from wallet import sign, verify, termcolors, checksum
 
 class bs:
@@ -192,9 +191,6 @@ if __name__ == '__main__':
     try:
         x = Deserializer.deserialize_raw(raw.hex())
 #        x.display_raw()
-        arr = []
-        utxo_add(arr, x)
-        print (arr)
     except struct.error:
         print ('Invalid length of raw transaction')
 #    x.display()
