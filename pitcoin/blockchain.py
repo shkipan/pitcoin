@@ -22,7 +22,7 @@ class Blockchain():
         for nonce in range(max_nonce):
             bl.nonce = nonce
             bl.hash = bl.calculate_hash()
-            #print (nonce, bl.hsh)
+#            print (nonce, bl.hash)
             if bl.hash[0:self.complexity] == '0' * self.complexity:
 #                print ('nonce = ', nonce)
 #                print ('hash is ',  bl.hash)
@@ -39,9 +39,8 @@ class Blockchain():
             return None
         privk = wallet.convert_from_wif(addr)
         publa = wallet.get_public_address(privk)
-        cbtrans = CoinbaseTransaction(publa)
-        cbtrans.signature, cbtrans.public_address = wallet.sign(privk, cbtrans.gethash())
-        cbserial = Serializer.serialize(cbtrans)
+        cbtrans = CoinbaseTransaction(publa, self.reward)
+        cbserial = Serializer.serialize_raw(cbtrans, '', '').hex()
         bl = Block(time(), 0, '0', [cbserial])
         self.mine(bl)
         return (bl)
@@ -49,6 +48,7 @@ class Blockchain():
     def __init__(self):
         self.blocks = []
         self.complexity = 2
+        self.reward = 50
         data = {}
         try:
             with open(home + 'blockchain', 'r') as f:
@@ -64,6 +64,7 @@ class Blockchain():
                 bl = Block(i['timestamp'], i['nonce'], i['previous_hash'], i['transactions'])
                 bl.hash = i['hash']
                 bl.mroot = i['mroot']
+                bl.heigth = i['heigth']
                 self.blocks.append(bl)
                 self.last_hash = bl.hash
         else:
@@ -97,6 +98,9 @@ class Blockchain():
                 print ('wrong prev hash')
                 return False
             item = item[0]
+        for bl in self.blocks:
+            if not bl.validate():
+                return False
         return True
         
     def chain_balance(self, addr):

@@ -25,7 +25,7 @@ def save_to_mem(plain):
     d = json.loads(r.text)
     try:
         if (d['success']):
-            print ('transaction accepted')
+            return True
     except KeyError:
         print (d['error'] + ', transaction denied')
         return False 
@@ -34,18 +34,17 @@ def save_to_mem(plain):
 def get_trans(data):
     s1 = []
     if (len(data['ppool']) == 0):
-        print ('empty mempool')
         return ''
     for i in data['ppool'][:3]:
         s1.append(i['serial'])
-        Deserializer.deserialize(i['serial']).display()
+#        Deserializer.deserialize_raw(i['serial']).display_raw()
     return (s1)
 
 def get_last_trans(data):
     s1 = []
     for i in data['ppool'][-3:]:
         s1.append(i['serial'])
-        Deserializer.deserialize(i['serial']).display()
+#        Deserializer.deserialize(i['serial']).display()
     return (s1)
 
 if __name__ == '__main__':

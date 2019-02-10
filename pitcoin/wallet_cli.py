@@ -28,7 +28,7 @@ class Shell(cmd.Cmd):
     prompt = termcolors.BLUE + 'pitcoin-cli: ' + termcolors.DEF 
     intro = "Pitcoin wallet manager"
 
-    fee = 50000
+    fee = 5
     private_key = None
     public_key = None
     public_address = None
@@ -147,31 +147,6 @@ class Shell(cmd.Cmd):
             print ('Invalid string in file')
 
     def do_send(self, line):
-        print ('depredecated')
-        return
-        if (len(line.split(' ')) < 2):
-            print ('Enter recipient\'s address and amount')
-        else:
-            if not self.private_key:
-                print ('No private key generated!')
-                return
-            try:
-                publk = open('address', 'r').readline().replace('\n', '')
-                if int(line.split(' ')[1]) > 65535 or int(line.split(' ')[1]) < 1:
-                    raise ValueError()
-                x = Transaction(publk, line.split(' ')[0], int(line.split(' ')[1]), None)
-                x.signature, x.public_address = sign(self.private_key, x.gethash())
-                if (verification(x)):
-                    print (termcolors.GRN + 'Transaction verified' + termcolors.DEF)
-                    self.serial = Serializer.serialize(x)
-                else:
-                    print (termcolors.RED + 'Transaction declined' + termcolors.DEF)
-            except IOError:
-                print ('Can\'t open address file')
-            except ValueError:
-                print (termcolors.RED + 'Error! ' + termcolors.DEF + 'Coins\' number must be integer from 1 to 65535 coins')
-
-    def do_sendraw(self, line):
         if (len(line.split(' ')) < 2):
             print ('Enter recipient\'s address and amount')
             return 
@@ -195,14 +170,14 @@ class Shell(cmd.Cmd):
             unspent_outs = get_testnet_inputs(sender)
         else:
             unspent_outs = get_inputs(sender, my_url + ':' + PORT + '/utxo?address=' + sender) 
-        if not unspent_outs:
-            return
+        if len(unspent_outs) == 0:
+            print ('Not enough money to perform transaction')
+            return 
         inputs = utxo_select_inputs(unspent_outs, self.fee, amount) 
         if len(inputs) == 0:
             print ('Not enough money to perform transaction')
             return 
         outputs = utxo_create_outputs(sender, recipient, amount, self.fee, inputs)
-
         print ('inputs')
         print (inputs)
         print ('outputs')
@@ -217,9 +192,9 @@ class Shell(cmd.Cmd):
         print (raw.hex())
         self.raw = raw
 
-    def do_broadraw(self, line):
+    def do_broadcast(self, line):
         if not self.raw:
-            print ('Create raw transaction with <sendraw> command!')
+            print ('Create raw transaction with <send> command!')
             return 
         testnet = False
         if len(line) > 0:
@@ -237,44 +212,19 @@ class Shell(cmd.Cmd):
             d = json.loads(r.text)
             print ('Broadcast finished with', d['status'])
             if d['status']:
-                print ('Transaction ID is', d['txid'])
+                print ('Transaction info')
+                print (d)
             return 
-        send_url = my_url + ':' + str(PORT) + '/raw/new'
-        data = {'serial': self.raw.hex()}
-        try:
-            r = requests.post(url = send_url, json=data)
-        except requests.exceptions.ConnectionError:
-            print ('Unable to connect')
-            return 
-        d = json.loads(r.text)
-        try:
-            if (d['success']):
-                print ('Transaction is valid')
-        except KeyError:
-            print (d['error'] + ', transaction denied')
-    #    self.raw = None
-
-    def do_broadcast(self, line):
-        print ('depredecated')
-        return 
-        testnet_flag = False
-        if (len(line) != 0):
-            if (line.split(' ')[0] == '-t'):
-                print ('broadcasting to testnet!')
-                testnet_flag = True
-                return 
-        if not self.serial:
-            print ('Create transaction with <send> command!')
-            return 
-        if (pending_pool.add_trans(self.serial)):
+        if (pending_pool.save_to_mem(self.raw.hex())):
             print ('Transaction added to mempool')
-        self.serial = None
+
+        self.raw = None
 
     def do_balance(self, line):
         if (len(line) > 0):
             print ('Your address is ' + line.split(' ')[0])
-            if (len(line) > 1):
-                if line.split(' ')[1] == '-t'
+#            if (len(line) > 1):
+#                if line.split(' ')[1] == '-t'
             send_url = my_url + ':' + PORT + '/balance'
             data = {'addr': line.split(' ')[0]}
             try:

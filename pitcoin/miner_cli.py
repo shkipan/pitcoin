@@ -6,8 +6,6 @@ import wallet, pending_pool
 from wallet import termcolors
 from block import Block
 from time import time
-from serializer import Serializer, Deserializer
-from transaction import CoinbaseTransaction
 from merkle import merkle_root
 from blockchain import Blockchain
 import json, requests, urllib.request
@@ -117,25 +115,13 @@ class Shell(cmd.Cmd):
 
     def do_mine(self, line):
         try:
-            complexity = int(line)
-        except ValueError:
-            print ('Enter complexity number!')
-            return
-        try:
             addr = open('miners_key', 'r').readline().replace('\n', '')
         except IOError:
             print ('No miners_key file!')
             return False
         privk = wallet.convert_from_wif(addr)
         publa = wallet.get_public_address(privk)
-        cbtrans = CoinbaseTransaction(publa)
-        cbtrans.signature, cbtrans.public_address = wallet.sign(privk, cbtrans.gethash())
-        print ('Creating coinbase transaction')
-        cbserial = Serializer.serialize(cbtrans)
-        data = {
-                'transaction': cbserial,
-                'complexity': complexity
-        }
+        data = {'miner': publa}
         try:
             r  = requests.post(url = send_url+ '/blocks/new', json=data)
         except requests.exceptions.ConnectionError:
@@ -144,7 +130,7 @@ class Shell(cmd.Cmd):
         d = json.loads(r.text)
         try:
             if (d['success']):
-                print ('block accepted, hash:\n', d['block']['hash'])
+                print ('block accepted, hash:\n' + d['block']['hash'])
         except KeyError:
             print (d['error'] + ', block declined')
             return

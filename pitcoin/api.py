@@ -2,17 +2,18 @@
 
 import flask, requests, struct
 from flask import json, jsonify, request, make_response
-from serializer import Deserializer
 from tx_validator import *
 from blockchain import Blockchain
 from block import Block
 from time import time
-from syncdata import get_config, sync_node, clear_transactions
+from syncdata import get_config, sync_node, clear_transactions, check_halving
 from pending_pool import get_trans
 from consensus import find_consensus
 from pathlib import Path
 from utxo_set import *
 from operator import itemgetter
+from transaction import CoinbaseTransaction
+from serializer import Serializer, Deserializer, swap_bytes
 
 home = str(Path.home()) + '/.pitcoin/'
 my_url, PORT = get_config(False)
@@ -25,7 +26,6 @@ data['blocks'] = []
 data['ppool'] = []
 data['nodes'] = []
 data['utxo'] = []
-data['rawpool'] = []
 
 blockchain = Blockchain()
 sync_node(blockchain, data)
@@ -74,6 +74,7 @@ def get_consensus():
             print (d['error'])
     with open(home + 'blockchain', 'w+') as f:
         json.dump(data['blocks'], f)
+    utxo_init(data)
     return jsonify({'blockchain': 1})
 
 @app.route('/block/get', methods=['GET'])
@@ -157,48 +158,38 @@ def get_mempool():
 
 #adding a new transaction to mempool
 @app.route('/transactions/new', methods=['POST'])
-def add_transaction():
+def add_raw_transaction():
     if not request.is_json:
         return jsonify({'error':'invalid object passed'}), 404
     trans = {
         'serial': request.get_json()['serial'],
         'id': 0 if len(data['ppool']) == 0 else data['ppool'][-1]['id'] + 1
     }
-    x = Deserializer.deserialize(trans['serial'])
-    if verification(x):
-        data['ppool'].append(trans)
-    else:
-        print('Invalid transaction sent')
-        return jsonify({'error':'invalid transaction'}), 404
-    with open(home + 'mempool', 'w+') as f:
-        json.dump(data['ppool'], f)
-    return jsonify({'trans': trans, 'success': True}), 201
-
-
-#adding a new transaction to mempool
-@app.route('/raw/new', methods=['POST'])
-def add_raw_transaction():
-    if not request.is_json:
-        return jsonify({'error':'invalid object passed'}), 404
-    trans = {
-        'serial': request.get_json()['serial'],
-        'id': 0 if len(data['rawpool']) == 0 else data['rawpool'][-1]['id'] + 1
-    }
     try:
         x = Deserializer.deserialize_raw(trans['serial'])
     except struct.error:
-        print ('Invalid trasnsaction format')
+        print ('Invalid transaction format')
         return jsonify({'error':'Invalid transaction format'}), 404
+     
     x.display_raw()
-    validate_raw(data['utxo'], x)
-
-
+    val = validate_raw(data['utxo'], x)
+    if (val == False):
+        print ('Transaction was not validated')
+        return jsonify({'error':'Transaction is invalid'}), 404
+    utxo_add(data['utxo'], x)
+    data['ppool'].append(trans)
+    with open(home + 'mempool', 'w+') as f:
+        json.dump(data['ppool'], f)
     return jsonify({'success': True}), 201
 
+#getter for blocks in blockchain
+@app.route('/coinbase', methods=['GET'])
+def get_reward():
+    return jsonify({'reward': blockchain.reward})
 
 #adding a new block to blockchain
 @app.route('/blocks/new', methods=['POST'])
-def add_block():
+def add_block_raw():
     if not request.is_json:
         return jsonify({'error':'invalid object passed'}), 404
     trans = get_trans(data)
@@ -206,37 +197,48 @@ def add_block():
         print ('Empty mempool')
         return jsonify({'error':'Empty mempool'}), 404
 
-    compl = int(request.get_json()['complexity'])
-    if (compl < 0 or compl >= 64):
-        print ('Invalid complexity number')
-        return jsonify({'error':'invalid complexity number'}), 404
-    blockchain.complexity = compl if compl != 0 else 2
-    jsblock = {'transactions': request.get_json()['transaction']}
-    trans.append(jsblock['transactions'])
-
+    cbtrans = CoinbaseTransaction(request.get_json()['miner'], blockchain.reward)
+    cbtrans.display_raw()
+    cbtrans_serial = Serializer.serialize_raw(cbtrans, '', '').hex()
+    cbtrans.tr_hash = swap_bytes(hashlib.sha256(hashlib.sha256(bytes.fromhex(cbtrans_serial)).digest()).hexdigest())
+    utxo_add(data['utxo'], cbtrans)
+    trans.append(cbtrans_serial)
+    for i in trans:
+        print (i)
     bl = Block(time(), 0, blockchain.last_hash, trans)
     bl.previous_hash = blockchain.last_hash
-
     blockchain.mine(bl)
+    bl.heigth = len(data['blocks'])
+
+#    return jsonify({'success': True}), 201
+    jsblock = {}
     jsblock['hash'] = bl.hash
     jsblock['nonce'] = bl.nonce
     jsblock['previous_hash'] = bl.previous_hash
     jsblock['mroot'] = bl.mroot
     jsblock['transactions'] = bl.transactions
     jsblock['timestamp'] = bl.timestamp
+    jsblock['heigth'] = bl.heigth
 
-    if not bl.validate():
+    if not bl.validate(blockchain.blocks[-3:], data['utxo']):
         print ('Invalid block')
         return jsonify({'error':'Invalid transaction in block'}), 404
     print ('Valid block')
 
     clear_transactions(data, bl.transactions)
     data['blocks'].append(jsblock)
+
     blockchain.blocks.append(bl)
     blockchain.last_hash = bl.hash
     with open(home + 'blockchain', 'w+') as f:
         json.dump(data['blocks'], f)
+
+    check_halving(blockchain)
     return jsonify({'block': jsblock, 'success': True}), 201
+
+
+def time_loop():
+    return (1)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT)

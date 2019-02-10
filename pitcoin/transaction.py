@@ -27,16 +27,9 @@ class Transaction():
         h = hashlib.sha256(bytes(s, 'utf-8')).hexdigest().upper()
         return (h)
 
-    def display(self):
-        print ('Transaction info')
-        print ('\tsender:   ', self.sender)
-        print ('\trecipient:', self.recipient)
-        print ('\tamount:', self.amount)
-        print ('\tsignature:', self.signature)
-
     def display_raw(self):
         print ('__________________________________________')
-        print ('transaction hash:', self.tr_hash.hex())
+        print ('transaction hash:', self.tr_hash.hex() if len(self.tr_hash) > 0 else '')
         print ('version:   ', self.version) 
 
         print ('input count:', self.inputs_num)
@@ -51,12 +44,24 @@ class Transaction():
         print ('__________________________________________')
 
 class CoinbaseTransaction(Transaction):
-    def __init__(self, s):
+    def __init__(self, s, rew):
         self.sender = '0'*34
         self.recipient = s
-        self.amount  = 50
+        self.amount  = rew
         self.signature = ''
         self.public_address = ''
+
+        ext = {'inp': [{'amount': rew, 'tx_prev_hash': '0'*64, 'tx_prev_index': 4294967295}], 
+                'oup': [{'value': rew, 'address': s}], 
+                'locktime': 0, 'version': 1}
+        self.version = ext['version'] 
+        self.inputs = ext['inp']
+        self.outputs = ext['oup']
+        self.inputs_num = len(ext['inp'])
+        self.outputs_num = len(ext['oup'])
+        self.timelock = ext['locktime']
+        self.tr_hash = ''
+
 
 if __name__ == '__main__':
     print ()

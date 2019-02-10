@@ -1,4 +1,4 @@
-import sys, binascii, struct, base58, hashlib, ecdsa
+import sys, binascii, struct, base58, hashlib, ecdsa, os
 from transaction import Transaction
 from wallet import sign, verify, termcolors, checksum
 
@@ -13,21 +13,6 @@ def swap_bytes(s):
     return (bytes.fromhex(flip))
 
 class Deserializer():
-
-    def deserialize(result):
-        amount = int(result[0:4], 16)
-        sender = str(result[5:39])
-        recipient = str(result[40:74])
-        if (sender != '0' * 35):
-            sender = sender.replace('0', '')
-        recipient = recipient.replace('0', '')
-        pa = result[74:202]
-        sign = result[202:]
-        x = Transaction(sender, recipient, amount, None)
-        x.public_address = pa
-        x.signature = sign
-        return (x)
-
     def deserialize_raw(result):
         trans_bytes = bytes.fromhex(result)
         version = struct.unpack('<L', trans_bytes[:bs.L])[0]
@@ -78,15 +63,6 @@ class Deserializer():
         return (x)
 
 class Serializer():
-
-    def serialize(trans):
-        l1 = '%04x' % trans.amount
-        s1 = '0' * (35  - len(trans.sender)) + trans.sender
-        s2 = '0' * (35  - len(trans.recipient)) + trans.recipient
-        result = l1 + s1 + s2 + trans.public_address + trans.signature
-        print (result)
-        return (result)
-
     @staticmethod
     def get_trans_for_sign(trans, index):
         v = struct.pack('<L', 1)
@@ -95,10 +71,12 @@ class Serializer():
         tx_out_count = struct.pack('<B', trans.outputs_num)
         for i in range(trans.inputs_num):
             item = trans.inputs[i]
+            if item['tx_prev_hash'] == '0' * 64:
+                item['script'] = os.urandom(25).hex()
             tx = {
                     'txouthash': swap_bytes(item['tx_prev_hash']),
                     'tx_out_index': struct.pack('<L', item['tx_prev_index']),
-                    'script': bytes.fromhex(item['script']) if i == index else b'',
+                    'script': bytes.fromhex(item['script']) if (i == index) else b'',
                     'script_bytes': struct.pack('<B', len(bytes.fromhex(item['script'])) if i == index else 0),
                     'sequence': struct.pack('<L', 0xffffffff)
             }
@@ -145,18 +123,22 @@ class Serializer():
         for i in range(trans.inputs_num):
             hashed_tx_to_sign, tx_in, tx_out = Serializer.get_trans_for_sign(trans, i)
             txes_hashed_to_sign.append(hashed_tx_to_sign)
-        sk = ecdsa.SigningKey.from_string(bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
         r_tx = v + tx_in_count 
         for index in range(len(tx_in)):
             i = tx_in[index]
-            signature = sk.sign_digest(txes_hashed_to_sign[index], sigencode=ecdsa.util.sigencode_der_canonize)
-            sigscript = (
-                struct.pack('<B', len(signature) + 1)
-                + signature
-                + b'\01'
-                + struct.pack('<B', len(bytes.fromhex(public_key)))
-                + bytes.fromhex(public_key) 
-            )
+            if i['txouthash'].hex() != '0'* 64:
+                sk = ecdsa.SigningKey.from_string(bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
+                signature = sk.sign_digest(txes_hashed_to_sign[index], sigencode=ecdsa.util.sigencode_der_canonize)
+                sigscript = (
+                    struct.pack('<B', len(signature) + 1)
+                    + signature
+                    + b'\01'
+                    + struct.pack('<B', len(bytes.fromhex(public_key)))
+                    + bytes.fromhex(public_key) 
+                )             
+            else:
+                sigscript = os.urandom(64)
+ 
             i['script'] = sigscript
             i['script_bytes'] = struct.pack('<B', len(sigscript))
             r_tx += (
@@ -177,11 +159,11 @@ class Serializer():
         return (r_tx)
      
 if __name__ == '__main__':
-    oup = [{'value': 800000, 'address': 'mv13YQAqcat77LVNVU2b8qh3GHiqCik6fi'}]
-    inp = [{'tx_prev_hash':'01c12be1461a9eb63b3d04954a3f5d5e5e0445809724a335688a5a062c129fd8', 'tx_prev_index': 0, 'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'}]
+    oup = [{'value': 800000, 'address': 'mkADfzin6WwT7tLVWgpj7DcgiJ3nBp4HDh'}]
+    inp = [{'tx_prev_hash':'87357e1c2e01359fbaacc6c605b618a5444382f3d792ff9e734cfa372b250bf8', 'tx_prev_index': 0, 'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'}, {'tx_prev_hash':'87357e1c2e01359fbaacc6c605b618a5444382f3d792ff9e734cfa372b250bf8', 'tx_prev_index': 1, 'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'}, {'tx_prev_hash':'095b320dc5142e584164ebb2a74db99db5782618571c49f1f1e352dd71e05eae', 'tx_prev_index': 0, 'script': '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'}]
     ext = {'inp': inp, 'oup':oup, 'locktime':0, 'version': 1}
     private_key = 'a106d38f79a67196e42202e679496235180390cb82f5639bd3cac91a20bc1d86'
-    public_key = '030bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b969'
+    public_key = '040bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b9693b6b37493a4c5b8d716d2d93e5d34f9bd39753db8ecd59d9ec89b23dbf5ffdb1'
 
     x = Transaction('','',10, ext)
  #   x.display_raw()
@@ -195,4 +177,29 @@ if __name__ == '__main__':
         print ('Invalid length of raw transaction')
 #    x.display()
 
+'''
 
+    def deserialize(result):
+        amount = int(result[0:4], 16)
+        sender = str(result[5:39])
+        recipient = str(result[40:74])
+        if (sender != '0' * 35):
+            sender = sender.replace('0', '')
+        recipient = recipient.replace('0', '')
+        pa = result[74:202]
+        sign = result[202:]
+        x = Transaction(sender, recipient, amount, None)
+        x.public_address = pa
+        x.signature = sign
+        return (x)
+
+
+    def serialize(trans):
+        l1 = '%04x' % trans.amount
+        s1 = '0' * (35  - len(trans.sender)) + trans.sender
+        s2 = '0' * (35  - len(trans.recipient)) + trans.recipient
+        result = l1 + s1 + s2 + trans.public_address + trans.signature
+        print (result)
+        return (result)
+
+''' 

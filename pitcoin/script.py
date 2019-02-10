@@ -25,11 +25,10 @@ class Script():
 
     def check(stack, pubk):
         signature = stack.pop()
-
         '''
         vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(public_key), curve=ecdsa.SECP256k1)
         try:
-            vk.verify(bytes.fromhex(signature), bytes.fromhex(stack.trans_hex), sigdecode=ecdsa.util.sigdecode_der)
+            vk.verify(bytes.fromhex(signature[:-2]), bytes.fromhex(stack.trans_hex))#, sigdecode=ecdsa.util.sigdecode_der_canonize)
             print ('Valid Sig')
             stack.validity = True
         except ecdsa.BadSignatureError:
@@ -70,7 +69,7 @@ class Script():
     def display(self):
         print (wallet.termcolors.RED + '_____________________' + wallet.termcolors.DEF)
         for i in self.items:
-            print ('࿈', i)
+            print ('/', i)
         print (wallet.termcolors.RED + '_____________________' + wallet.termcolors.DEF)
 
     def decode(self, script, scriptpubkey):
@@ -90,6 +89,7 @@ class Script():
             for code in Script.operations:
                 if (elem == code[0]):
                  #   print (code[1])
+                    stack.display()
                     code[2](stack, stack.pop())
                  #   stack.display()
                     code_done = True
@@ -106,9 +106,9 @@ class Script():
            
 
 if __name__ == '__main__':
-    scriptsig = '483045022100f2fd091947e9f07d8de42efe18ee8471f98edebdf0684da535c69584d29ea27e022076818b93dfb10e43ab2167e31d6c61c8e6abaef5ec383eabdec7a5e3151184d10121030bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b969'
-    script = '76a9149ee1c9c57e86f8d1264a02f8af8a5c2543f787bc88ac'
-    scr = Script('8b367538abb9e099d9e3e902d566defed0485eeaafdba0d7bdf70fe4c4afa6bc')
+    scriptsig = '41289a5d2e0a373d2bc37713043f806290f28ecc7f5bb334011183fdec8e87bc7279b341f57e4a54bf76a89ec70873f7c6eaec6a7d02de8ccc6022872e6d96aa7f0141040bd6af4572a569e8c512f686cd5b9f414a58b71cf1a54543b20afdbe9129b9693b6b37493a4c5b8d716d2d93e5d34f9bd39753db8ecd59d9ec89b23dbf5ffdb1'
+    script = '76a91432ecbb1b78a870466ed165d98165fba6ddb3828488ac'
+    scr = Script('1f0b671930cf4d72983f8974c0ec6893a96c4202283e6d5b6271cec7d5497982')
     print (scr.decode(script, scriptsig))
 
  

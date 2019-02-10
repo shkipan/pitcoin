@@ -94,6 +94,8 @@ def get_public_key(arg):
         print ('Invalid string length!')
         sys.exit(1)
 
+    return ('04' + s)
+
     x = s[:64]
     y = s[64:]
     s = ('03' if int(y[63], 16) & 1 else '02') + x
@@ -148,12 +150,12 @@ def get_inputs(pa, send_url):
         r = requests.get(url=send_url)
     except requests.exceptions.ConnectionError:
         print ('Unable to connect')
-        return
+        return []
     d = json.loads(r.text)
     try:
         if len(d) == 0:
             print ('No unspent output!')
-            return 
+            return []
     except KeyError:
         return
     return sorted(d['utxo_set']['tx'], key=itemgetter('amount'))
@@ -164,11 +166,11 @@ def get_testnet_inputs(sender):
         r = requests.get(url=send_url)
     except requests.exceptions.ConnectionError:
         print ('Unable to connect')
-        return
+        return []
     try:
         d = json.loads(r.text)
     except json.decoder.JSONDecodeError:
-        return
+        return []
     res = []
     for item in d['unspent_outputs']:
         tx ={

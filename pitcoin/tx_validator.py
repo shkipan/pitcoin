@@ -2,7 +2,7 @@ import binascii, base58, hashlib
 from transaction import Transaction
 from wallet import checksum, verify
 from script import Script
-from utxo_set import utxo_get_script
+from utxo_set import utxo_get_script 
 
 def check_aval(trans):
     try:
@@ -63,22 +63,24 @@ def check_valid(trans):
 def verification(trans):
     return check_aval(trans) and check_address(trans) and check_valid(trans)
 
-
 def validate_raw(utxo, trans):
-    print (validate_inputs(utxo, trans))
-    print (validate_outputs(trans))
-    return True
+    return validate_inputs(utxo, trans) and validate_outputs(trans)
 
 def validate_inputs(utxo, trans):
     scr = Script(trans.tr_hash)
-    for item in trans.inputs:
+    i = 0
+    for i in range(len(trans.inputs)):
+        item = trans.inputs[i]
         result = scr.decode(utxo_get_script(utxo, item['tx_prev_hash'], item['tx_prev_index']), item['script'])
-        print (result)
-
-    
+        if (result == False):
+            print ('Input #' + str(i) + ' wasn\'t validated')
+            return False
+        i += 1
     return True
 
 def validate_outputs(trans):
+    for item in trans.inputs:
+        print (item)
     return True
 
 

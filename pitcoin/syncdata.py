@@ -38,7 +38,6 @@ def get_config(muted = True):
     return 'http://' + conf['url'], conf['port']
 
 def sync_node(blockchain, data):
-    js = data['blocks']
     for i in blockchain.blocks:
         t = {
             'timestamp': i.timestamp,
@@ -46,9 +45,10 @@ def sync_node(blockchain, data):
             'mroot':i.mroot,
             'transactions':i.transactions,
             'hash':i.hash,
-            'previous_hash':i.previous_hash
+            'previous_hash':i.previous_hash,
+            'heigth': i.heigth
         }
-        js.append(t)
+        data['blocks'].append(t)
     with open(home + 'blockchain', 'w+') as f:
         json.dump(data['blocks'], f)
 
@@ -84,6 +84,8 @@ def clear_transactions(data, arr):
     with open(home + 'mempool', 'w+') as f:
         json.dump(data['ppool'], f)
 
-def add_transactions(data, arr):
-   return 1         
-
+def check_halving(blockchain):
+    le = len(blockchain.blocks)
+    if le % 5 == 0:
+        blockchain.reward = int(blockchain.reward / 2)
+    return (1)
