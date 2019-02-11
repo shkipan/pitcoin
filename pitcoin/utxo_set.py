@@ -111,7 +111,7 @@ def utxo_init(data):
         for trans in block['transactions']:
             x = Deserializer.deserialize_raw(trans)
             utxo_add(data['utxo'], x)
-            x.display_raw()
+#            x.display_raw()
     '''
     data['utxo'].append(
             {   'tx_id': 'b8c80067725f5d2ef41bba57096dbe0f46a26aa6e4ad409d2500a3cc226e3e91',

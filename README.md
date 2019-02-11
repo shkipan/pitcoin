@@ -11,9 +11,9 @@ Before installing pitcoin itself, you should do some precautions to make it work
 
 Installation
 ============
-1. You should clone repository using `git clone https://xteams-gitlab.unit.ua/xteams/module-3-dskrypny.git` command
-2. Make sure, that repo is cloned - there must be a folder named **module-3-dskrypny**
-3. Enter project's folder and go to **pitcoin** directory (`cd module-2-dskrypny/pitcoin`)
+1. You should clone repository using `git clone https://xteams-gitlab.unit.ua/xteams/module-4-dskrypny.git` command
+2. Make sure, that repo is cloned - there must be a folder named **module-4-dskrypny**
+3. Enter project's folder and go to **pitcoin** directory (`cd module-4-dskrypny/pitcoin`)
 4. Execute installer with command `source launch.sh` and wait until all packages will be installed
 5. Now you may get access to *wallet_cli* and *miners_cli*
 

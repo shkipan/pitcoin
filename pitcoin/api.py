@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import flask, requests, struct
+import flask, requests, struct, sys
 from flask import json, jsonify, request, make_response
 from tx_validator import *
+from wallet import termcolors
 from blockchain import Blockchain
 from block import Block
 from time import time
@@ -19,7 +20,7 @@ home = str(Path.home()) + '/.pitcoin/'
 my_url, PORT = get_config(False)
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
 
 data = {}
 data['blocks'] = []
@@ -30,6 +31,11 @@ data['utxo'] = []
 blockchain = Blockchain()
 sync_node(blockchain, data)
 utxo_init(data)
+
+if len(sys.argv) > 1 and sys.argv[1] == 'premine':
+    print (termcolors.GRN + 'Premine mod on' + termcolors.DEF)
+else:
+    print (termcolors.YELL + 'Premine mod off' + termcolors.DEF)
 
 @app.errorhandler(404)
 def not_found(error):
