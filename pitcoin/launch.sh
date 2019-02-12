@@ -8,7 +8,7 @@ cd .pitcoin
 python3 -m venv pitcoinenv
 source pitcoinenv/bin/activate
 pip install -r $BDIR/requierments.txt
-echo "alias virtenv='source ~/.pitcoin/pitcoinenv/bin/activate'" >> ~/.bashrc
+echo "alias virtenv='source .pitcoin/pitcoinenv/bin/activate'" >> ~/.bashrc
 cd $BDIR
 echo ''
 
