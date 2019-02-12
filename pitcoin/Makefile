@@ -3,5 +3,5 @@ backup:
 	pip freeze > requierments.txt
 
 reboot:
-	rm -rf ~/.pitcoin/blockchain
-	rm -rf ~/.pitcoin/mempool
+	rm -rf .pitcoin/blockchain
+	rm -rf .pitcoin/mempool
