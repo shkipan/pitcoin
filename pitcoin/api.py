@@ -7,7 +7,7 @@ from wallet import termcolors
 from blockchain import Blockchain
 from block import Block
 from time import time
-from syncdata import get_config, sync_node, clear_transactions, check_halving
+from syncdata import *
 from pending_pool import get_trans
 from consensus import find_consensus
 from pathlib import Path
@@ -16,11 +16,12 @@ from operator import itemgetter
 from transaction import CoinbaseTransaction
 from serializer import Serializer, Deserializer, swap_bytes
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
 my_url, PORT = get_config(False)
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = False
+app.config["DEBUG"] = True
 
 data = {}
 data['blocks'] = []
@@ -28,14 +29,15 @@ data['ppool'] = []
 data['nodes'] = []
 data['utxo'] = []
 
-blockchain = Blockchain()
-sync_node(blockchain, data)
-utxo_init(data)
-
-if len(sys.argv) > 1 and sys.argv[1] == 'premine':
+if len(sys.argv) > 1 and sys.argv[1] == '-premine':
     print (termcolors.GRN + 'Premine mod on' + termcolors.DEF)
+    blockchain = Blockchain(True)
 else:
     print (termcolors.YELL + 'Premine mod off' + termcolors.DEF)
+    blockchain = Blockchain()
+
+sync_node(blockchain, data)
+utxo_init(data)
 
 @app.errorhandler(404)
 def not_found(error):
@@ -203,20 +205,15 @@ def add_block_raw():
         print ('Empty mempool')
         return jsonify({'error':'Empty mempool'}), 404
 
-    cbtrans = CoinbaseTransaction(request.get_json()['miner'], blockchain.reward)
-    cbtrans.display_raw()
-    cbtrans_serial = Serializer.serialize_raw(cbtrans, '', '').hex()
+    cbtrans_serial = request.get_json()['miner']
+    cbtrans = Deserializer.deserialize_raw(cbtrans_serial)
     cbtrans.tr_hash = swap_bytes(hashlib.sha256(hashlib.sha256(bytes.fromhex(cbtrans_serial)).digest()).hexdigest())
     utxo_add(data['utxo'], cbtrans)
     trans.append(cbtrans_serial)
-    for i in trans:
-        print (i)
     bl = Block(time(), 0, blockchain.last_hash, trans)
-    bl.previous_hash = blockchain.last_hash
     blockchain.mine(bl)
     bl.heigth = len(data['blocks'])
 
-#    return jsonify({'success': True}), 201
     jsblock = {}
     jsblock['hash'] = bl.hash
     jsblock['nonce'] = bl.nonce
@@ -242,9 +239,6 @@ def add_block_raw():
     check_halving(blockchain)
     return jsonify({'block': jsblock, 'success': True}), 201
 
-
-def time_loop():
-    return (1)
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=PORT)
+    app.run(host='0.0.0.0', port=PORT, threaded=True)
+

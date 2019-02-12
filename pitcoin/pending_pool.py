@@ -7,7 +7,8 @@ import urllib.request, json, requests
 from syncdata import get_config
 from pathlib import Path
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
 my_url, PORT = get_config()
 
 def add_trans(plain):

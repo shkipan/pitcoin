@@ -4,14 +4,13 @@
 
 import sys, os, cmd, base58, binascii
 import tx_validator, pending_pool 
-from transaction import Transaction
+from transaction import Transaction, CoinbaseTransaction
 from tx_validator import *
 from serializer import Serializer, Deserializer
 from wallet import *
 from block import Block
 import json, requests
 from utxo_set import *
-from blockcypher import pushtx
 
 from operator import itemgetter
 
@@ -20,9 +19,13 @@ import struct
 from syncdata import get_config
 from pathlib import Path
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
+
 my_url, PORT = get_config()
 PORT = str(PORT)
+
+send_url = my_url + ':' + PORT 
 
 class Shell(cmd.Cmd):
     prompt = termcolors.BLUE + 'pitcoin-cli: ' + termcolors.DEF 
@@ -182,8 +185,7 @@ class Shell(cmd.Cmd):
         print (inputs)
         print ('outputs')
         print (outputs)
-        ext = {'inp': inputs, 'oup': outputs, 'locktime':0, 'version': 1}
-        x = Transaction(sender, recipient, amount, ext)
+        x = Transaction(sender, recipient, amount, {'inp': inputs, 'oup': outputs, 'locktime':0, 'version': 1})
         try:
             raw = Serializer.serialize_raw(x, self.private_key, self.public_key)
         except ValueError:
@@ -240,7 +242,43 @@ class Shell(cmd.Cmd):
         else:
             print ('Enter address to check it\'s balance!')
 
+    def premine(self, reward):
+        print ('premine')
+        privkey = [get_new_private_key() for i in range(3)]
+        addr = [get_public_address(privkey[i]) for i in range(3)]
+        for i in range(len(privkey)):
+            item = privkey[i]
+            with open('premine' + str(i), 'w+') as f:
+                f.write(convert_to_wif(item))
+     #       print (item, addr[i])
+    
+        print ('cb creating')
+        for i in addr:
+            cbtrans = CoinbaseTransaction(i, reward)
+            cbtrans_serial = Serializer.serialize_raw(cbtrans, '', '').hex()
+            print(cbtrans_serial)
+            data = {'miner': cbtrans_serial}
+            try:
+                r  = requests.post(url = send_url+ '/blocks/new', json=data)
+            except requests.exceptions.ConnectionError:
+                print ('Unable to connect')
+                return False
+            d = json.loads(r.text)
+            try:
+                if (d['success']):
+                    print ('block accepted, hash:\n' + d['block']['hash'])
+            except KeyError:
+                print (d['error'] + ', block declined')
+
+
+            print (cb_serial)
+    
+        print ('cb done')
+        self.do_exit('')
+
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'premine':
+        Shell().premine(1)
     try:
         Shell().cmdloop()
     except KeyboardInterrupt:

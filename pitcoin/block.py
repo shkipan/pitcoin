@@ -3,6 +3,7 @@ from merkle import merkle_root
 from time import time
 from tx_validator import validate_raw
 from serializer import Deserializer
+import struct
 
 max_nonce = 2 ** 32
 
@@ -18,12 +19,13 @@ class Block():
         self.heigth = 0
 
     def calculate_hash(self):
+        v = struct.pack('<L', 1).hex()
         ts = str(self.timestamp)
         no = str(self.nonce)
         trans_hash = ''
         for i in self.transactions:
             trans_hash += hashlib.sha256(bytes(i, 'utf-8')).hexdigest()
-        res = ts + no + self.previous_hash + trans_hash + self.mroot
+        res = v + self.previous_hash + trans_hash + self.mroot + ts + no
         hsh = hashlib.sha256(bytes(res, 'utf-8')).hexdigest()
         return (hsh)
     

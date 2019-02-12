@@ -9,11 +9,15 @@ from time import time
 from merkle import merkle_root
 from blockchain import Blockchain
 import json, requests, urllib.request
+from transaction import CoinbaseTransaction
+from serializer import Serializer
 
 from syncdata import get_config
 from pathlib import Path
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
+
 my_url, PORT = get_config()
 PORT = str(PORT)
 send_url = my_url + ':' + PORT
@@ -81,10 +85,10 @@ class Shell(cmd.Cmd):
         except ValueError:
             print ('Enter url address of the node')
 
-    def do_chainlength(self, line):
+    def do_getchainlength(self, line):
         with urllib.request.urlopen(send_url + '/chain/length') as url:
             data = json.loads(url.read().decode())
-            print (data['length'])
+            print (data['chainlength'])
 
     def do_valid(self, line):
         with urllib.request.urlopen(send_url+ '/chain/valid') as url:
@@ -103,6 +107,7 @@ class Shell(cmd.Cmd):
             print ('nonce:', i['nonce'])
             print ('time:', i['timestamp'])
             print ('prev:', i['previous_hash'])
+            print ('heigth', i['heigth'])
             print('_____________')
 
     def do_consensus(self, line):
@@ -121,7 +126,17 @@ class Shell(cmd.Cmd):
             return False
         privk = wallet.convert_from_wif(addr)
         publa = wallet.get_public_address(privk)
-        data = {'miner': publa}
+        try:
+            with urllib.request.urlopen(send_url+ '/coinbase') as url:
+                data = json.loads(url.read().decode())
+        except urllib.error.URLError:
+            print ('Unable to connect')
+            return
+        rew = data['reward']
+        cbtrans = CoinbaseTransaction(publa, rew)
+        cbtrans.display_raw()
+        cbtrans_serial = Serializer.serialize_raw(cbtrans, '', '').hex()
+        data = {'miner': cbtrans_serial, 'address': publa}
         try:
             r  = requests.post(url = send_url+ '/blocks/new', json=data)
         except requests.exceptions.ConnectionError:

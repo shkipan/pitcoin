@@ -6,9 +6,15 @@ from operator import itemgetter
 from syncdata import get_config
 from pathlib import Path
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
+
 my_url, PORT = get_config()
 PORT = str(PORT)
+
+def utxo_print(utxo):
+    for item in utxo:
+        print (item)
 
 def utxo_get(utxo, address):
     for elem in utxo:
@@ -24,7 +30,8 @@ def utxo_get(utxo, address):
                     'amount': i['amount'],
                     'script': i['script']
                 })
-    return (result)
+    return sorted(result, key=itemgetter('amount'))
+
 
 def utxo_balance(utxo, address):
     for elem in utxo:
@@ -63,7 +70,8 @@ def utxo_create_outputs(sender, recipient, amount, fee, inputs):
         bal += item['amount']
     diff = bal - amount - fee
     out.append({'value': amount, 'address': recipient})
-    out.append({'value': diff, 'address': sender})
+    if diff != 0:
+        out.append({'value': diff, 'address': sender})
     return out
 
 def utxo_add(utxo, trans):

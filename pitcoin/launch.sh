@@ -3,8 +3,8 @@ chmod a+x wallet_cli.py
 chmod a+x miner_cli.py
 BDIR=$(pwd)
 echo $BDIR
-mkdir ~/.pitcoin
-cd ~/.pitcoin
+mkdir .pitcoin
+cd .pitcoin
 python3 -m venv pitcoinenv
 source pitcoinenv/bin/activate
 pip install -r $BDIR/requierments.txt

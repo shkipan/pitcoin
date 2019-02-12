@@ -1,16 +1,21 @@
 import sys, hashlib
-import json, requests, urllib.request
+import json, requests, urllib.request, random
 import wallet
 from time import time
-from transaction import CoinbaseTransaction
+from transaction import CoinbaseTransaction, Transaction
 from serializer import Serializer, Deserializer
 from block import Block
 from merkle import merkle_root
+from wallet import *
+from utxo_set import *
+from tx_validator import *
+from operator import itemgetter
 
 from syncdata import get_config
 from pathlib import Path
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
 my_url, PORT = get_config()
 PORT = str(PORT)
 
@@ -30,11 +35,11 @@ class Blockchain():
         bl.timestamp = time()
         mine(bl)
 
-    def create_gen_block(self):
+    def create_gen_block(self, file_name):
         try:
-            addr = open('miners_key', 'r').readline().replace('\n', '')
+            addr = open(file_name, 'r').readline().replace('\n', '')
         except IOError:
-            print ('No miners_key file!')
+            print ('No file', file_name)
             sys.exit()
             return None
         privk = wallet.convert_from_wif(addr)
@@ -45,10 +50,67 @@ class Blockchain():
         self.mine(bl)
         return (bl)
 
-    def __init__(self):
+    def premine(self):
+        random.seed(time())
+        privkey = [get_new_private_key() for i in range(3)]
+        publkey = [get_public_key(privkey[i]) for i in range(3)]
+
+        addr = [get_public_address(privkey[i]) for i in range(3)]
+        for i in range(len(privkey)):
+            item = privkey[i]
+            with open('premine' + str(i), 'w+') as f:
+                f.write(convert_to_wif(item))
+        for i in range(len(addr)):
+            bl = self.create_gen_block('premine' + str(i))
+            self.mine(bl)
+            if bl:
+                if len(self.blocks) > 0:
+                    bl.previous_hash = self.blocks[len(self.blocks) - 1].hash
+                bl.heigth = len(self.blocks)
+                self.blocks.append(bl)
+                self.last_hash = bl.hash
+        utxo = []
+        for i in self.blocks:
+            trans = Deserializer.deserialize_raw(i.transactions[0])
+            utxo_add(utxo, trans)
+        for x in range(3):
+            for ind in range(len(addr)):
+                for jnd in range(len(addr)):
+                    i = addr[ind]
+                    j = addr[jnd]
+                    if i != j:
+                        amount = random.randint(6, 15)
+                        print (i, j, amount)
+                        inputs = utxo_select_inputs(utxo_get(utxo, i), 5, amount)
+                        outputs = utxo_create_outputs(i, j, amount, 5, inputs)
+                        if len(inputs) == 0:
+                            continue
+                        tr = Transaction(i, j, amount, {'inp': inputs, 'oup': outputs, 'locktime':0, 'version': 1})
+                        tr_serial = Serializer.serialize_raw(tr, privkey[ind], publkey[ind])
+                        tr_des = Deserializer.deserialize_raw(tr_serial.hex())
+                        utxo_add(utxo, tr_des)
+                        bl = Block(time(), 0, self.last_hash, [tr_serial.hex()])
+                        self.mine(bl)
+                        bl.heigth = len(self.blocks)
+                        self.blocks.append(bl)
+                        self.last_hash = bl.hash
+
+        #deleting premine files
+        '''
+        for i in range(len(privkey)):
+            if os.path.isfile('premine' + str(i)):
+                os.remove('premine' + str(i))
+        '''
+   
+
+
+
+    def __init__(self, premine=False):
         self.blocks = []
         self.complexity = 2
         self.reward = 50
+        if premine:
+            return self.premine()
         data = {}
         try:
             with open(home + 'blockchain', 'r') as f:
@@ -68,7 +130,7 @@ class Blockchain():
                 self.blocks.append(bl)
                 self.last_hash = bl.hash
         else:
-            bl = self.create_gen_block()
+            bl = self.create_gen_block('miners_key')
             self.mine(bl)
             self.blocks.append(bl)
             self.last_hash = bl.hash

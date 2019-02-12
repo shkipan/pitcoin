@@ -1,9 +1,12 @@
-import flask
+import flask, os
 from flask import json, jsonify
-import socket
 from pathlib import Path
+from wallet import *
+from transaction import CoinbaseTransaction
+from serializer import Serializer
 
-home = str(Path.home()) + '/.pitcoin/'
+#home = str(Path.home()) + '/.pitcoin/'
+home = './.pitcoin/'
 
 def validate_url(st):
     try:
@@ -51,7 +54,6 @@ def sync_node(blockchain, data):
         data['blocks'].append(t)
     with open(home + 'blockchain', 'w+') as f:
         json.dump(data['blocks'], f)
-
     try:
         with open(home + 'mempool', 'r') as f:
             print ('Mempool file opened')
@@ -88,4 +90,13 @@ def check_halving(blockchain):
     le = len(blockchain.blocks)
     if le % 5 == 0:
         blockchain.reward = int(blockchain.reward / 2)
-    return (1)
+        return (1)
+    return (0)
+
+    '''
+    for i in privkey:
+        for j in privkey:
+            if i != j:
+                print (i, j)
+    '''
+
