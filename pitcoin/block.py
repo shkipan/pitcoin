@@ -44,7 +44,6 @@ class Block():
         return True
     
 if __name__ == '__main__':
-     x = Block(time(),0,  '0', [str(i) for i in range(9)])
-     x.mine(2)
+     x = Block(time(), 0,  '0', [str(i) for i in range(9)])
      print (x.calculate_hash())
 

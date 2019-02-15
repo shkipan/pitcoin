@@ -6,7 +6,7 @@ from tx_validator import *
 from wallet import termcolors
 from blockchain import Blockchain
 from block import Block
-from time import time
+from time import time, sleep
 from syncdata import *
 from pending_pool import get_trans
 from consensus import find_consensus
@@ -15,6 +15,7 @@ from utxo_set import *
 from operator import itemgetter
 from transaction import CoinbaseTransaction
 from serializer import Serializer, Deserializer, swap_bytes
+import threading
 
 #home = str(Path.home()) + '/.pitcoin/'
 home = './.pitcoin/'
@@ -28,6 +29,19 @@ data['blocks'] = []
 data['ppool'] = []
 data['nodes'] = []
 data['utxo'] = []
+data['mining'] = False
+data['mining_thread'] = None
+
+
+def print_sth(x):
+    t = threading.currentThread()
+    while getattr(t, 'do_run', True):
+        print (x)
+        sleep(1)
+
+
+
+
 
 if len(sys.argv) > 1 and sys.argv[1] == '-premine':
     print (termcolors.GRN + 'Premine mod on' + termcolors.DEF)
@@ -238,6 +252,22 @@ def add_block_raw():
 
     check_halving(blockchain)
     return jsonify({'block': jsblock, 'success': True}), 201
+
+
+
+@app.route('/mine', methods=['GET'])
+def mining():
+    data['mining'] = not data['mining']
+
+    if data['mining']:
+        data['mining_thread'] = threading.Thread(target=print_sth, args = (1,))
+        data['mining_thread'].start()
+    else:
+        data['mining_thread'].do_run = False
+        data['mining_thread'].join()
+    result = jsonify({'result': 'mining started' if data['mining'] else 'mining stopped'})
+    return result, 201
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, threaded=True)

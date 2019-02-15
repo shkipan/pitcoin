@@ -19,6 +19,7 @@ from pathlib import Path
 home = './.pitcoin/'
 
 my_url, PORT = get_config()
+print (my_url, PORT)
 PORT = str(PORT)
 send_url = my_url + ':' + PORT
 
@@ -149,6 +150,17 @@ class Shell(cmd.Cmd):
         except KeyError:
             print (d['error'] + ', block declined')
             return
+
+    def do_start(self, line):
+        try:
+            r = requests.get(url = send_url + '/mine')
+        except requests.exceptions.ConnectionError:
+            print ('Unable to connect')
+            return
+        d = json.loads(r.text)
+        print (d)
+
+
 
 if __name__ == '__main__':
     try:

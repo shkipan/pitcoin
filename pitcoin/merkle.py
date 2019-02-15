@@ -10,18 +10,18 @@ def merkle_root(t):
     while (len(transs) > 1):
         res = []
         for i in range(int(len(transs) / 2)):
-            h1 = hashlib.sha256(bytes(transs[2 * i], 'utf-8')).hexdigest().upper()
-            h2 = hashlib.sha256(bytes(transs[2 * i + 1], 'utf-8')).hexdigest().upper()
+            h1 = hashlib.sha256(bytes(transs[2 * i], 'utf-8')).hexdigest()
+            h2 = hashlib.sha256(bytes(transs[2 * i + 1], 'utf-8')).hexdigest()
             res.append(h1 + h2)
         transs = res
         if len(transs) & 1 and len(transs) != 1:
             transs.append(transs[len(transs) - 1])
-    return (hashlib.sha256(bytes(transs[0], 'utf-8')).hexdigest().upper())
+    return (hashlib.sha256(bytes(transs[0], 'utf-8')).hexdigest())
 
 def main():
     s = [str(i) for i in range(9)]
     for i in s:
-        print (hashlib.sha256(bytes(i, 'utf-8')).hexdigest().upper())
+        print (hashlib.sha256(bytes(i, 'utf-8')).hexdigest())
     print ('________________')
     print (merkle_root(s))
 

@@ -228,7 +228,9 @@ class Shell(cmd.Cmd):
 #            if (len(line) > 1):
 #                if line.split(' ')[1] == '-t'
             send_url = my_url + ':' + PORT + '/balance'
+            print (send_url)
             data = {'addr': line.split(' ')[0]}
+            r = ''
             try:
                 r = requests.get(url=send_url, json = data)
             except requests.exceptions.ConnectionError:

@@ -31,9 +31,11 @@ def get_config(muted = True):
                 for i in conf:
                     if string.split('=')[0] == i:
                         conf[i] = string.split('=')[1]
+                        '''
                         if i == 'url':
                             if not validate_url(string.split('=')[1]):
                                 conf['url'] = '0.0.0.0'
+                        '''
 
     except:
         if not muted:

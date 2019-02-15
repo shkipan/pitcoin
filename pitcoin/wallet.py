@@ -40,8 +40,8 @@ def print_mhelp():
 #count checksum of the string
 def checksum(s):
     try:
-        sha1 = hashlib.sha256(binascii.unhexlify(s)).hexdigest().upper()
-        sha2 = hashlib.sha256(binascii.unhexlify(sha1)).hexdigest().upper()
+        sha1 = hashlib.sha256(binascii.unhexlify(s)).hexdigest()
+        sha2 = hashlib.sha256(binascii.unhexlify(sha1)).hexdigest()
         return (sha2[0:8])
     except binascii.Error:
         print ('Invalid string length!')
@@ -81,11 +81,11 @@ def convert_from_wif(arg):
 #generate new private key
 def get_new_private_key():
     x = os.urandom(32)
-    s = binascii.hexlify(x).decode().upper()
+    s = binascii.hexlify(x).decode()
     return (s)
 
 #getting public key from private, passed as argument
-def get_public_key(arg):
+def get_public_key(arg, compressed=True):
     vk = SigningKey.from_string(binascii.unhexlify(arg), curve=SECP256k1).get_verifying_key();
 
     try:
@@ -93,8 +93,8 @@ def get_public_key(arg):
     except binascii.Error:
         print ('Invalid string length!')
         sys.exit(1)
-
-    return ('04' + s)
+    if not compressed:
+        return ('04' + s)
 
     x = s[:64]
     y = s[64:]
@@ -105,14 +105,12 @@ def get_public_key(arg):
 def get_public_address(arg):
     s = get_public_key(arg)
     try:
-        sha = hashlib.sha256(binascii.unhexlify(s)).hexdigest().upper()
+        sha = hashlib.sha256(binascii.unhexlify(s)).hexdigest()
         h = hashlib.new('ripemd160')
         h.update(binascii.unhexlify(sha))
  
         s = '6f' +  h.hexdigest()
-        sha1 = hashlib.sha256(binascii.unhexlify(s)).hexdigest().upper()
-        sha2 = hashlib.sha256(binascii.unhexlify(sha1)).hexdigest().upper()
-        s += sha2[0:8]
+        s += checksum(s)
         s = s.upper()
         s = base58.b58encode(binascii.unhexlify(s)).decode()
     except binascii.Error:
@@ -141,9 +139,6 @@ def verify(key, sig, msg):
         return (True)
     except BadSignatureError:
         return (False)
-
-def select_inputs(outputs, val):
-    return (1)
 
 def get_inputs(pa, send_url):
     try:

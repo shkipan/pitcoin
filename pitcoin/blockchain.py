@@ -27,10 +27,11 @@ class Blockchain():
         for nonce in range(max_nonce):
             bl.nonce = nonce
             bl.hash = bl.calculate_hash()
-#            print (nonce, bl.hash)
+    #            print (nonce, bl.hash)
             if bl.hash[0:self.complexity] == '0' * self.complexity:
-#                print ('nonce = ', nonce)
-#                print ('hash is ',  bl.hash)
+                if not self.muted:
+                    print ('nonce = ', nonce)
+                    print ('hash is ',  bl.hash)
                 return
         bl.timestamp = time()
         mine(bl)
@@ -39,7 +40,8 @@ class Blockchain():
         try:
             addr = open(file_name, 'r').readline().replace('\n', '')
         except IOError:
-            print ('No file', file_name)
+            if not self.muted:
+                print ('No file', file_name)
             sys.exit()
             return None
         privk = wallet.convert_from_wif(addr)
@@ -80,7 +82,8 @@ class Blockchain():
                     j = addr[jnd]
                     if i != j:
                         amount = random.randint(6, 15)
-                        print (i, j, amount)
+                        if not self.muted:
+                            print (i, j, amount)
                         inputs = utxo_select_inputs(utxo_get(utxo, i), 5, amount)
                         outputs = utxo_create_outputs(i, j, amount, 5, inputs)
                         if len(inputs) == 0:
@@ -105,7 +108,8 @@ class Blockchain():
 
 
 
-    def __init__(self, premine=False):
+    def __init__(self, premine=False, muted=True):
+        self.muted = muted
         self.blocks = []
         self.complexity = 2
         self.reward = 50
@@ -117,11 +121,14 @@ class Blockchain():
                 tex = f.read()
                 data = json.loads(tex)
         except FileNotFoundError:
-            print ('No blockchain file!')
+            if not self.muted:
+                print ('No blockchain file!')
         except json.decoder.JSONDecodeError:
-            print ('Invalid file')
+            if not muted:
+                print ('Invalid file')
         if (len(data) != 0):
-            print ('Blockchain file opened')
+            if not muted:
+                print ('Blockchain file opened')
             for i in data:
                 bl = Block(i['timestamp'], i['nonce'], i['previous_hash'], i['transactions'])
                 bl.hash = i['hash']
@@ -147,6 +154,7 @@ class Blockchain():
                 return False  
             test_hash = item.calculate_hash()
             if (test_hash != item.hash):
+                print (item.hash)
                 print ('invalid hash of block')
                 return False  
             test_mroot = merkle_root(item.transactions)

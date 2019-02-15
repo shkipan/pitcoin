@@ -51,8 +51,9 @@ class Script():
             [136, 'OP_EQUALVERIFY', equ],
     ]
 
-    def __init__(self, he):
+    def __init__(self, he, muted=True):
         self.validity = True
+        self.muted=True
         self.trans_hex = he
         self.items = []
 
@@ -89,15 +90,14 @@ class Script():
             for code in Script.operations:
                 if (elem == code[0]):
                  #   print (code[1])
-                    stack.display()
+                    if not stack.muted:
+                        stack.display()
                     code[2](stack, stack.pop())
-                 #   stack.display()
                     code_done = True
                     break
             if not code_done:
                 x = script[i + 1 : i + elem + 1]
                 stack.push(x.hex())
-             #  stack.display()
                 i += elem 
             i += 1
         return True, 'Script is valid'
