@@ -4,4 +4,6 @@ premine*
 .pitcoin
 address
 miners_key
-2pitcoin
+premine*
+wif*
+privkey

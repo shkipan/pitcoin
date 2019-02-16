@@ -15,28 +15,30 @@ class Block():
         self.previous_hash = ph
         self.transactions = transs
         self.mroot = merkle_root(transs)
-        self.hash = self.calculate_hash()
+        self.version = 47
+        self.target = 2 ** (256 - 1)
         self.heigth = 0
+        self.hash = self.calculate_hash()
 
     def calculate_hash(self):
         v = struct.pack('<L', 1).hex()
         ts = str(self.timestamp)
-        no = str(self.nonce)
-        trans_hash = ''
-        for i in self.transactions:
-            trans_hash += hashlib.sha256(bytes(i, 'utf-8')).hexdigest()
-        res = v + self.previous_hash + trans_hash + self.mroot + ts + no
+        tar = hex(self.target)
+        no = struct.pack('<L', self.nonce).hex()
+        res = v + self.previous_hash  + self.mroot + ts + tar + no
         hsh = hashlib.sha256(bytes(res, 'utf-8')).hexdigest()
+        self.hash = hsh
         return (hsh)
     
     def validate(self, prev_blocks, utxo):
-        ts_avg = 0
-        for i in prev_blocks:
-            ts_avg += i.timestamp
-        ts_avg = int(ts_avg / len(prev_blocks))
-        if (self.timestamp < ts_avg):
-            print ('Invalid timestamp')
-            return False
+        if (len(prev_blocks) > 0):
+            ts_avg = 0
+            for i in prev_blocks:
+                ts_avg += i.timestamp
+            ts_avg = ts_avg / len(prev_blocks)
+            if (self.timestamp < ts_avg):
+                print ('Invalid timestamp')
+                return False
         for item in self.transactions:
             x = Deserializer.deserialize_raw(item)
             if not validate_raw(utxo, x):
@@ -44,6 +46,6 @@ class Block():
         return True
     
 if __name__ == '__main__':
-     x = Block(time(), 0,  '0', [str(i) for i in range(9)])
-     print (x.calculate_hash())
+    x = Block(1550301281.172262, 21,  '0', [str(i) for i in range(9)])
+    print (x.calculate_hash())
 

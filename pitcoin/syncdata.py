@@ -47,10 +47,11 @@ def sync_node(blockchain, data):
         t = {
             'timestamp': i.timestamp,
             'nonce':i.nonce,
-            'mroot':i.mroot,
+            'merkle_root':i.mroot,
             'transactions':i.transactions,
             'hash':i.hash,
-            'previous_hash':i.previous_hash,
+            'previous_block_hash': i.previous_hash,
+            'target': i.target,
             'heigth': i.heigth
         }
         data['blocks'].append(t)
@@ -95,10 +96,5 @@ def check_halving(blockchain):
         return (1)
     return (0)
 
-    '''
-    for i in privkey:
-        for j in privkey:
-            if i != j:
-                print (i, j)
-    '''
+def check_diff(blockchain): pass
 

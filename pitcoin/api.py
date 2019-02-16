@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import flask, requests, struct, sys
-from flask import json, jsonify, request, make_response
+from flask import json, jsonify, request, make_response, url_for
 from tx_validator import *
 from wallet import termcolors
 from blockchain import Blockchain
@@ -32,23 +32,14 @@ data['utxo'] = []
 data['mining'] = False
 data['mining_thread'] = None
 
-
-def print_sth(x):
-    t = threading.currentThread()
-    while getattr(t, 'do_run', True):
-        print (x)
-        sleep(1)
-
-
-
-
-
+premine = False
 if len(sys.argv) > 1 and sys.argv[1] == '-premine':
     print (termcolors.GRN + 'Premine mod on' + termcolors.DEF)
-    blockchain = Blockchain(True)
+    premine = True
 else:
     print (termcolors.YELL + 'Premine mod off' + termcolors.DEF)
-    blockchain = Blockchain()
+blockchain = Blockchain(premine)
+blockchain.is_valid_chain(data['utxo'])
 
 sync_node(blockchain, data)
 utxo_init(data)
@@ -76,6 +67,12 @@ def return_utxo():
                 }})
     return result, 201
 
+#supply getter
+@app.route('/supply', methods=['GET'])
+def return_suply():
+    return jsonify({'supply': utxo_supply(data['utxo']), 'success': True})
+
+
 #consensus command
 @app.route('/consensus', methods=['GET'])
 def get_consensus():
@@ -99,20 +96,14 @@ def get_consensus():
     utxo_init(data)
     return jsonify({'blockchain': 1})
 
-@app.route('/block/get', methods=['GET'])
-def get_block_by_index():
-    print (request.args.get('height'))
-    if not request.is_json:
-        return jsonify({'error':'invalid object passed'}), 404
-    index = request.get_json()['index']
-    print (data['blocks'][index])
-    return jsonify({'block': data['blocks'][index], 'success': True})
-
 @app.route('/block', methods=['GET'])
-def get_index_block():
-    h = request.args.get('height')
+def get_block():
+    h = request.args.get('block_height')
     if not h:
-        return jsonify({'error':'no height parameter passed'}), 404
+        if not request.is_json:
+            return jsonify({'error':'no height parameter passed'}), 404
+        else:
+            h = request.get_json()['index']
     try:
         if (int(h) <= 0):
             raise ValueError
@@ -140,7 +131,7 @@ def get_chainlength():
 #checking validity of all blocks in blockchain
 @app.route('/chain/valid', methods=['GET'])
 def get_validity():
-    return jsonify({'valid': blockchain.is_valid_chain()}), 201
+    return jsonify({'valid': blockchain.is_valid_chain(utxo)}), 201
 
 #calculate balance of address
 @app.route('/balance', methods=['GET'])
@@ -210,41 +201,51 @@ def get_reward():
     return jsonify({'reward': blockchain.reward})
 
 #adding a new block to blockchain
+@app.route('/block/receive', methods=['POST'])
+def receive_block():
+    if not request.is_json:
+        return jsonify({'error':'invalid object passed'}), 404
+    bl = request.get_json()
+    print (bl)
+    if data['mining_thread']:
+        data['mining_thread'].do_run = False
+        data['mining_thread'].join()
+    return (jsonify({'success': True})), 201
+
+#adding a new block to blockchain
 @app.route('/blocks/new', methods=['POST'])
 def add_block_raw():
     if not request.is_json:
         return jsonify({'error':'invalid object passed'}), 404
-    trans = get_trans(data)
-    if (len(trans) == 0):
-        print ('Empty mempool')
-        return jsonify({'error':'Empty mempool'}), 404
-
     cbtrans_serial = request.get_json()['miner']
     cbtrans = Deserializer.deserialize_raw(cbtrans_serial)
     cbtrans.tr_hash = swap_bytes(hashlib.sha256(hashlib.sha256(bytes.fromhex(cbtrans_serial)).digest()).hexdigest())
-    utxo_add(data['utxo'], cbtrans)
-    trans.append(cbtrans_serial)
+    trans = [cbtrans_serial]
+    trans.append(get_trans(data))
     bl = Block(time(), 0, blockchain.last_hash, trans)
+    bl.target = blockchain.target
     blockchain.mine(bl)
     bl.heigth = len(data['blocks'])
 
     jsblock = {}
     jsblock['hash'] = bl.hash
     jsblock['nonce'] = bl.nonce
-    jsblock['previous_hash'] = bl.previous_hash
-    jsblock['mroot'] = bl.mroot
+    jsblock['previous_block_hash'] = bl.previous_hash
+    jsblock['merkle_root'] = bl.mroot
     jsblock['transactions'] = bl.transactions
     jsblock['timestamp'] = bl.timestamp
     jsblock['heigth'] = bl.heigth
+    jsblock['target'] = bl.target
+    jsblock['version'] = bl.version
 
     if not bl.validate(blockchain.blocks[-3:], data['utxo']):
         print ('Invalid block')
         return jsonify({'error':'Invalid transaction in block'}), 404
     print ('Valid block')
+    utxo_add(data['utxo'], cbtrans)
 
     clear_transactions(data, bl.transactions)
     data['blocks'].append(jsblock)
-
     blockchain.blocks.append(bl)
     blockchain.last_hash = bl.hash
     with open(home + 'blockchain', 'w+') as f:
@@ -253,21 +254,69 @@ def add_block_raw():
     check_halving(blockchain)
     return jsonify({'block': jsblock, 'success': True}), 201
 
+data['mining_result'] = []
+
+def print_sth(cbtrans_serial, target, arr, jis):
+    t = threading.currentThread()
+    while (getattr(t, 'do_run', True)):
+        n = 0
+        cbtrans = Deserializer.deserialize_raw(cbtrans_serial)
+        cbtrans.tr_hash = swap_bytes(hashlib.sha256(hashlib.sha256(bytes.fromhex(cbtrans_serial)).digest()).hexdigest())
+        trans = []
+        trans.append(cbtrans_serial)
+        trans.append(get_trans(data))
+        bl = Block(time(), 0, blockchain.last_hash, trans)
+        bl.heigth = len(data['blocks'])
+        bl.target = blockchain.target
+        while getattr(t, 'do_run', True) and n < 2 ** 32:
+            bl.nonce = n
+            bl.calculate_hash()
+#            print (n, bl.hash)
+            if int(bl.hash, 16) < target:
+                break
+            n += 1
+        if not getattr(t, 'do_run', True):
+            return
+        arr.append(bl)
+        jsblock = {}
+        jsblock['hash'] = bl.hash
+        jsblock['nonce'] = bl.nonce
+        jsblock['previous_block_hash'] = bl.previous_hash
+        jsblock['merkle_root'] = bl.mroot
+        jsblock['transactions'] = bl.transactions
+        jsblock['timestamp'] = bl.timestamp
+        jsblock['heigth'] = bl.heigth
+        jsblock['target'] = bl.target
+        jsblock['version'] = bl.version
+        jis.append(jsblock)
 
 
-@app.route('/mine', methods=['GET'])
+@app.route('/mine', methods=['POST'])
 def mining():
+    print ('MINING BITCH')
+    if not request.is_json:
+        return jsonify({'error':'invalid object passed'}), 404
     data['mining'] = not data['mining']
-
     if data['mining']:
-        data['mining_thread'] = threading.Thread(target=print_sth, args = (1,))
+        cbtrans_serial = request.get_json()['miner']
+        print ('mining started')
+        data['mining_thread'] = threading.Thread(target=print_sth, args = (cbtrans_serial, blockchain.target, blockchain.blocks, data['blocks'], ))
         data['mining_thread'].start()
+        data['mining_thread'].join()
+        data['mining'] = False
+        print ('mining ended')
+        for bl in blockchain.blocks:
+            if bl:
+                print ('new block', bl.hash)
     else:
+        print ('mining ended')
         data['mining_thread'].do_run = False
         data['mining_thread'].join()
-    result = jsonify({'result': 'mining started' if data['mining'] else 'mining stopped'})
-    return result, 201
-
+        for bl in data['mining_result']:
+            if bl:
+                print ('new block', bl.hash)
+        data['mining'] = False
+    return jsonify({'success': True}), 201
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, threaded=True)

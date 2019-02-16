@@ -11,6 +11,7 @@ from blockchain import Blockchain
 import json, requests, urllib.request
 from transaction import CoinbaseTransaction
 from serializer import Serializer
+import threading
 
 from syncdata import get_config
 from pathlib import Path
@@ -19,7 +20,6 @@ from pathlib import Path
 home = './.pitcoin/'
 
 my_url, PORT = get_config()
-print (my_url, PORT)
 PORT = str(PORT)
 send_url = my_url + ':' + PORT
 
@@ -91,10 +91,28 @@ class Shell(cmd.Cmd):
             data = json.loads(url.read().decode())
             print (data['chainlength'])
 
+    def do_getsupply(self, line):
+        with urllib.request.urlopen(send_url + '/supply') as url:
+            data = json.loads(url.read().decode())
+            print (data['supply'])
+
+    def do_getblock(self, line):
+        h = str(int(line.split(' ')[0]))
+        with urllib.request.urlopen(send_url + '/block?height=' + h) as url:
+            data = json.loads(url.read().decode())
+            print (data['block'])
+
     def do_valid(self, line):
         with urllib.request.urlopen(send_url+ '/chain/valid') as url:
             data = json.loads(url.read().decode())
             print (data['valid'])
+
+    def do_getnodes(self, line):
+        with urllib.request.urlopen(send_url+ '/nodes') as url:
+            data = json.loads(url.read().decode())
+            print (data['nodes'])
+
+
 
     def do_getchain(self, line):
         try:
@@ -107,9 +125,16 @@ class Shell(cmd.Cmd):
             print ('hash:', i['hash'])
             print ('nonce:', i['nonce'])
             print ('time:', i['timestamp'])
-            print ('prev:', i['previous_hash'])
+            print ('prev:', i['previous_block_hash'])
             print ('heigth', i['heigth'])
             print('_____________')
+        try:
+            r = requests.post(url = send_url + '/block', json=data['blockchain'][0])
+        except urllib.error.URLError:
+            print ('Unable to connect')
+            return
+
+
 
     def do_consensus(self, line):
         try:
@@ -135,32 +160,22 @@ class Shell(cmd.Cmd):
             return
         rew = data['reward']
         cbtrans = CoinbaseTransaction(publa, rew)
-        cbtrans.display_raw()
         cbtrans_serial = Serializer.serialize_raw(cbtrans, '', '').hex()
         data = {'miner': cbtrans_serial, 'address': publa}
         try:
-            r  = requests.post(url = send_url+ '/blocks/new', json=data)
+            r  = requests.post(url = send_url+ '/mine', json=data, timeout=0.000001)
         except requests.exceptions.ConnectionError:
             print ('Unable to connect')
+            return False
+        except requests.exceptions.ReadTimeout:
             return False
         d = json.loads(r.text)
         try:
             if (d['success']):
-                print ('block accepted, hash:\n' + d['block']['hash'])
+                print ('ok')
         except KeyError:
             print (d['error'] + ', block declined')
             return
-
-    def do_start(self, line):
-        try:
-            r = requests.get(url = send_url + '/mine')
-        except requests.exceptions.ConnectionError:
-            print ('Unable to connect')
-            return
-        d = json.loads(r.text)
-        print (d)
-
-
 
 if __name__ == '__main__':
     try:

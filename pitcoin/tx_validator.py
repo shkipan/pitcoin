@@ -79,6 +79,7 @@ def validate_inputs(utxo, trans):
     return True
 
 def validate_outputs(trans):
+    return True
     for item in trans.inputs:
         print (item)
     return True

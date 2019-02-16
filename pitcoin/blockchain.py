@@ -10,6 +10,7 @@ from wallet import *
 from utxo_set import *
 from tx_validator import *
 from operator import itemgetter
+import threading
 
 from syncdata import get_config
 from pathlib import Path
@@ -24,17 +25,19 @@ max_nonce = 2**32
 class Blockchain():
 
     def mine(self, bl):
+        bl.target = self.target
         for nonce in range(max_nonce):
             bl.nonce = nonce
             bl.hash = bl.calculate_hash()
-    #            print (nonce, bl.hash)
-            if bl.hash[0:self.complexity] == '0' * self.complexity:
+            if int (bl.hash, 16) < self.target:
+#            if bl.hash[0:self.complexity] == '0' * self.complexity:
                 if not self.muted:
                     print ('nonce = ', nonce)
                     print ('hash is ',  bl.hash)
-                return
+                return 1
         bl.timestamp = time()
         mine(bl)
+        return 1
 
     def create_gen_block(self, file_name):
         try:
@@ -49,6 +52,7 @@ class Blockchain():
         cbtrans = CoinbaseTransaction(publa, self.reward)
         cbserial = Serializer.serialize_raw(cbtrans, '', '').hex()
         bl = Block(time(), 0, '0', [cbserial])
+        bl.target = self.target
         self.mine(bl)
         return (bl)
 
@@ -56,7 +60,6 @@ class Blockchain():
         random.seed(time())
         privkey = [get_new_private_key() for i in range(3)]
         publkey = [get_public_key(privkey[i]) for i in range(3)]
-
         addr = [get_public_address(privkey[i]) for i in range(3)]
         for i in range(len(privkey)):
             item = privkey[i]
@@ -64,11 +67,13 @@ class Blockchain():
                 f.write(convert_to_wif(item))
         for i in range(len(addr)):
             bl = self.create_gen_block('premine' + str(i))
-            self.mine(bl)
             if bl:
                 if len(self.blocks) > 0:
                     bl.previous_hash = self.blocks[len(self.blocks) - 1].hash
                 bl.heigth = len(self.blocks)
+                bl.previous_hash = self.last_hash
+                bl.target = self.target
+                self.mine(bl)
                 self.blocks.append(bl)
                 self.last_hash = bl.hash
         utxo = []
@@ -93,6 +98,7 @@ class Blockchain():
                         tr_des = Deserializer.deserialize_raw(tr_serial.hex())
                         utxo_add(utxo, tr_des)
                         bl = Block(time(), 0, self.last_hash, [tr_serial.hex()])
+                        bl.target = self.target
                         self.mine(bl)
                         bl.heigth = len(self.blocks)
                         self.blocks.append(bl)
@@ -109,9 +115,11 @@ class Blockchain():
 
 
     def __init__(self, premine=False, muted=True):
+        self.last_hash = '0'        
         self.muted = muted
         self.blocks = []
-        self.complexity = 2
+        self.complexity = 16
+        self.target = 2 ** (256 - self.complexity)
         self.reward = 50
         if premine:
             return self.premine()
@@ -130,31 +138,33 @@ class Blockchain():
             if not muted:
                 print ('Blockchain file opened')
             for i in data:
-                bl = Block(i['timestamp'], i['nonce'], i['previous_hash'], i['transactions'])
-                bl.hash = i['hash']
-                bl.mroot = i['mroot']
+                bl = Block(i['timestamp'], i['nonce'], i['previous_block_hash'], i['transactions'])
+                bl.mroot = i['merkle_root']
                 bl.heigth = i['heigth']
+                bl.target = i['target']
+                bl.calculate_hash()
                 self.blocks.append(bl)
                 self.last_hash = bl.hash
         else:
             bl = self.create_gen_block('miners_key')
+            bl.target = self.target
             self.mine(bl)
             self.blocks.append(bl)
             self.last_hash = bl.hash
 
-    def is_valid_chain(self):
+    def is_valid_chain(self, utxo):
         item = [x for x in self.blocks if x.hash == self.last_hash]
         if (len(item) == 0):
             print ('wrong last hash')
             return False
         item = item[0]
         while (True):
-            if ('0' * self.complexity != item.hash[0:self.complexity]):
+            if int (item.hash, 16) > self.target:
                 print ('wrong number of zeros in hash')
                 return False  
             test_hash = item.calculate_hash()
             if (test_hash != item.hash):
-                print (item.hash)
+                print (item.hash, test_hash)
                 print ('invalid hash of block')
                 return False  
             test_mroot = merkle_root(item.transactions)
@@ -168,9 +178,13 @@ class Blockchain():
                 print ('wrong prev hash')
                 return False
             item = item[0]
-        for bl in self.blocks:
-            if not bl.validate():
+        for i in range(len(self.blocks)):
+            bl = self.blocks[i]
+            bldiapp = self.blocks[i - 3: i] if  i > 2 else []
+            if not bl.validate(bldiapp, utxo):
                 return False
+        if not self.muted:
+            print ('Blockchain is valid')
         return True
         
     def chain_balance(self, addr):

@@ -33,6 +33,13 @@ def utxo_get(utxo, address):
     return sorted(result, key=itemgetter('amount'))
 
 
+def utxo_supply(utxo):
+    supply = 0
+    for item in utxo:
+        for trans in item['outputs']:
+            supply += trans['amount']
+    return (supply)
+
 def utxo_balance(utxo, address):
     for elem in utxo:
         if len(elem['outputs']) == 0:
