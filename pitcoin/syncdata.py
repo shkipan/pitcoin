@@ -1,4 +1,4 @@
-import flask, os
+import flask, os, urllib
 from flask import json, jsonify
 from pathlib import Path
 from wallet import *
@@ -97,4 +97,14 @@ def check_halving(blockchain):
     return (0)
 
 def check_diff(blockchain): pass
+
+def send_new_block(nodes, bl):
+    for i in nodes:
+        print (i)
+        try:
+           r = requests.post(url = 'http://' + i['node'] + '/block/receive', json=bl)
+        except:
+            print ('Unable to connect')
+            return
+
 

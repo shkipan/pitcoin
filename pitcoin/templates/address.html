@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block content %}
+	{% for bl in data %}
+	<article class="media content-section">
+	<div class="media-body">
+		<p><b> Transaction </b> {{ bl['tr_hash'] }}  </p>
+		<p> <b>Added </b> {{ bl['timer'] }}  </p>
+		<p> <b> Inputs </b> </p>
+		{% for x in bl['inp'] %}
+			<p style="margin-left:2em;"> {{ x['address'] }} {{ x['value'] }}  </p>
+		{% endfor %}
+		<p> <b> Outputs </b></p>
+		{% for x in bl['oup'] %}
+			<p style="margin-left:2em;"> {{ x['address'] }} {{ x['value'] }} <b>{{ x['spent'] }}</b> </p>
+		{% endfor %}
+	</div>
+	</article>
+	{% endfor %}
+{% endblock content %}

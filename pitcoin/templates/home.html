@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1> {{title}} </h1>
+	<div>
+		<h6 style="margin-left:1em;" id='bl_length'> Blockchain length = 0</p>
+		<h6 style="margin-left:1em;" id='supply'> Coinbase reward = 0</p>
+	</div>
+	<form style="margin-top:1em;" id='RadioForm'>
+			<input type="radio" id="radio5" name='select' value=5 checked>
+			<label for="radio5">Address info</label>
+			<br />
+			<input type="radio" id="radio0" name='select' value=0>
+			<label for="radio0">Block by index</label>
+			<br />
+			<input type="radio" id="radio1" name='select' value=1>
+			<label for="radio1">Blockchain</label>
+			<br />
+			<input type="radio" id="radio2" name='select' value=2>
+			<label for="radio2">Utxo</label>
+			<br />
+			<input type="radio" id="radio3" name='select' value=3 >
+			<label for="radio3">Balance</label>
+			<br />
+			<input type="radio" id="radio4" name='select' value=4 >
+			<label for="radio4">Transaction</label>
+			<br />
+		</form>
+	<input type="text" id="inp_string" name="inp_string">
+	<input  style="margin-top:1em;" id="btnGet" type="button" value="Get Info" />
+	<div  style="margin-top:1em;" class="container">
+		  <p id='hash'>
+	</div>
+
+{% endblock content %}

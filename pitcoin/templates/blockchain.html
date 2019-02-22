@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+	{% for bl in data %}
+	<article class="media content-section">
+	<div class="media-body">
+			<h4> Block #{{ bl['heigth'] }}</h4> 
+			<p><b> Hash </b>  {{ bl['hash'] }}</p>
+			<div class="tohide" style="display:none">
+			<p><b> Prev block hash </b>  {{ bl['previous_block_hash'] }}</p>
+			<p><b> Nonce </b>  {{ bl['nonce'] }}</p>
+			<p><b> Timestamp </b>  {{ bl['ti'] }}</p>
+			<p><b> Transactions </b></p>
+			{% for i in bl['jsoni'] %}
+				<p style="margin-left:2em;"> <b> Hash </b> {{ i['tr_hash']}}</p>
+				<p style="margin-left:2em;"> <b> Inputs </b> </p>
+				{% for x in i['inp'] %}
+					<p style="margin-left:3em;"> {{ x['tx_prev_hash'] }} {{ x['tx_prev_index'] }}  </p>
+				{% endfor %}
+				<p style="margin-left:2em;"> <b> Outputs </b></p>
+				{% for x in i['oup'] %}
+					<p style="margin-left:3em;"> {{ x['address'] }} {{ x['value'] }}  </p>
+				{% endfor %}
+			{% endfor %}
+			</div>
+	</div>
+	</article>
+	{% endfor %}
+{% endblock content %}

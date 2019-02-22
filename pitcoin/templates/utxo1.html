@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block content %}
+	<h6> Address  {{data['address']}} </h6>
+	{% for ut in data['tx'] %}
+		<article class="media content-section">
+		<div class="media-body">
+			<p>Transaction hash {{ut['tx_prev_hash'] }} </p>
+			<p>Output index {{ ut['tx_prev_index'] }} </p>
+			<p>Amount {{ ut['amount'] }} </p>
+		</div>
+		</article>
+	{% endfor %}
+{% endblock content %}

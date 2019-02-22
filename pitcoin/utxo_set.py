@@ -16,6 +16,22 @@ def utxo_print(utxo):
     for item in utxo:
         print (item)
 
+def utxo_spent(utxo, trans, index):
+    for elem in utxo:
+        if elem['tx_id'] == trans:
+            for i in elem['outputs']:
+                if i['index'] == index:
+                    return 'unspent'
+    return 'spent'
+
+def utxo_get_trans_output(utxo, tx_id, tx_index):
+    for bl in utxo:
+        for x in bl['transactions']:
+            elem = Deserializer.deserialize_raw(x)
+            if elem.tr_hash.hex() == tx_id:
+                item = elem.outputs
+                return {'address': item[tx_index]['address'], 'value': item[tx_index]['value']}
+
 def utxo_get(utxo, address):
     for elem in utxo:
         if len(elem['outputs']) == 0:
@@ -32,7 +48,6 @@ def utxo_get(utxo, address):
                 })
     return sorted(result, key=itemgetter('amount'))
 
-
 def utxo_supply(utxo):
     supply = 0
     for item in utxo:
@@ -48,7 +63,6 @@ def utxo_balance(utxo, address):
     bal = 0
     for i in inputs:
         bal += i['amount']
-
     return (bal)
 
 def utxo_select_inputs(out_set, fee, amount):

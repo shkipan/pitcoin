@@ -110,10 +110,7 @@ class Blockchain():
             if os.path.isfile('premine' + str(i)):
                 os.remove('premine' + str(i))
         '''
-   
-
-
-
+  
     def __init__(self, premine=False, muted=True):
         self.last_hash = '0'        
         self.muted = muted

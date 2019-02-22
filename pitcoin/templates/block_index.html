@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+	<article class="media content-section">
+	<div class="media-body">
+		<h4> Block #{{ data[0]['heigth'] }}</h4> 
+		<p><b> Hash </b>  {{ data[0]['hash'] }}</p>
+		<div>
+			<p><b> Prev block hash </b>  {{ data[0]['previous_block_hash'] }}</p>
+			<p><b>  Merkle root </b>  {{ data[0]['merkle_root'] }}</p>
+			<p><b>  Nonce </b>  {{ data[0]['nonce'] }}</p>
+			<p><b>  Timestamp </b>  {{ data[2] }}</p>
+			<p><b>  Target </b>  {{ data[0]['target'] }}</p>
+			<p><b> Transactions </b></p>
+			{% for i in data[1] %}
+				<p style="margin-left:2em;"> <b> Hash </b> {{ i['tr_hash']}}</p>
+				<p style="margin-left:2em;"> <b> Inputs </b> </p>
+				{% for x in i['inp'] %}
+					<p style="margin-left:3em;"> {{ x['tx_prev_hash'] }} {{ x['tx_prev_index'] }}  </p>
+				{% endfor %}
+				<p style="margin-left:2em;"> <b> Outputs </b></p>
+				{% for x in i['oup'] %}
+					<p style="margin-left:3em;"> {{ x['address'] }} {{ x['value'] }}  </p>
+				{% endfor %}
+		</div>
+		{% endfor %}
+	</div>
+	</article>
+{% endblock content %}

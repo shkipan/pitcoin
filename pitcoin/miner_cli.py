@@ -112,8 +112,6 @@ class Shell(cmd.Cmd):
             data = json.loads(url.read().decode())
             print (data['nodes'])
 
-
-
     def do_getchain(self, line):
         try:
             with urllib.request.urlopen(send_url+ '/chain') as url:
@@ -128,13 +126,6 @@ class Shell(cmd.Cmd):
             print ('prev:', i['previous_block_hash'])
             print ('heigth', i['heigth'])
             print('_____________')
-        try:
-            r = requests.post(url = send_url + '/block', json=data['blockchain'][0])
-        except urllib.error.URLError:
-            print ('Unable to connect')
-            return
-
-
 
     def do_consensus(self, line):
         try:

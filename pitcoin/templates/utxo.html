@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+	{% for ut in data %}
+		<article class="media content-section">
+		<div class="media-body">
+			<p><b> Transaction ID</b> {{ut['tx_id'] }}</p> 
+			{% for i in ut['outputs'] %}
+				<p><b> Output index</b>  {{ i['index'] }}</p>
+				<p><b> Recipient</b> {{ i['address'] }}</p>
+				<p><b> Amount</b> {{ i['amount'] }} </p>
+			{% endfor %}
+		</div>
+		</article>
+	{% endfor %}
+{% endblock content %}
