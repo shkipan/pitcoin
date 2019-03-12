@@ -53,6 +53,17 @@ JSON
 
 To access it open your browser and type in address bar *localhost:5000/**route***
 
+There is a web interface, which allows you to work with node in browser. 
+To start it execute new_api.py file in new terminal window while main node is running by typing *./new_api.py*. You must have pitcoin vvirtual enviroment activated to do it
+After starting the browser access address *localhost:4242*. Now you are able to select from some options:
+- *Address info* - gets information about bitcoin testnet address (inputs, outputs);
+- *Block by index* - gets information about block by it's height (nonce, timestamp, transactions);
+- *Blockchain* - if no parameter passed, displays whole blocks in blockchain in hidden form, 
+pass an integer into input field to get info about N last blocks;
+- *UTXO* - displays all unspent outputs n blockchain. Specify address to get it's unspnt outputs;
+- *Balance* - get balance of pitcoin address;
+- *Transaction* - get info about transation by it's hash.
+
 For developers
 =============
 If you would like to create pull requests to develop this project and import another libraries to code, don't forget to save the info about them on file requierments.txt. There is a useful makefile command for it `make backup`
